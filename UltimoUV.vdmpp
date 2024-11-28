@@ -1,0 +1,203 @@
+class AlertaUV
+types
+  public NivelUV = real; 
+  public AlertaActiva = bool;
+  public Riesgo = <Bajo> | <Medio> | <Alto>;
+
+values
+  UMBRAL_MEDIO: NivelUV = 7.0;
+  UMBRAL_ALTO: NivelUV = 10.0;
+
+instance variables
+  private alertas_activas: AlertaActiva;
+  private nivelRiesgo: Riesgo;
+
+operations
+  public AlertaUV: () ==> AlertaUV
+  AlertaUV() ==
+  (
+    alertas_activas := false;
+    nivelRiesgo := <Bajo>;
+  );
+
+  public activarAlerta: NivelUV ==> ()
+  activarAlerta(nivel) ==
+  (
+    if nivel > UMBRAL_MEDIO then
+      (
+        alertas_activas := true;
+        nivelRiesgo := if nivel > UMBRAL_ALTO then <Alto> else <Medio>;
+      )
+    else
+      (
+        alertas_activas := false;
+        nivelRiesgo := <Bajo>;
+      );
+  )
+  pre nivel >= 0;
+
+  public estadoAlerta: () ==> AlertaActiva
+  estadoAlerta() ==
+  (
+    return alertas_activas;
+  );
+
+  public getNivelRiesgo: () ==> Riesgo
+  getNivelRiesgo() ==
+  (
+    return nivelRiesgo;
+  );
+end AlertaUV
+
+
+
+---
+
+class SensorUV
+types
+  public NivelRadiacionUV = real;
+  public Ubicacion = seq of char;
+
+values
+  MAX_RADIACION_UV: real = 20.0;
+
+instance variables
+  private nivelRadiacionUV: NivelRadiacionUV;
+  private ubicacion: Ubicacion;
+
+operations
+  public SensorUV: NivelRadiacionUV * Ubicacion ==> SensorUV
+  SensorUV(nivel, ubic) ==
+  (
+    nivelRadiacionUV := nivel;
+    ubicacion := ubic;
+  )
+  pre nivel >= 0 and nivel <= MAX_RADIACION_UV and len ubic > 0 and len ubic <= 100;
+
+  public setNivelRadiacionUV: NivelRadiacionUV ==> ()
+  setNivelRadiacionUV(nivel) ==
+  (
+    nivelRadiacionUV := nivel;
+  )
+  pre nivel >= 0 and nivel <= MAX_RADIACION_UV;
+
+  public getNivelRadiacionUV: () ==> NivelRadiacionUV
+  getNivelRadiacionUV() ==
+    return nivelRadiacionUV;
+
+  public setUbicacion: Ubicacion ==> ()
+  setUbicacion(ubic) ==
+  (
+    ubicacion := ubic;
+  )
+  pre len ubic > 0 and len ubic <= 100;
+
+  public getUbicacion: () ==> Ubicacion
+  getUbicacion() ==
+    return ubicacion;
+end SensorUV
+
+---
+
+class SistemaMonitoreo
+types
+  public UVIntensity = real;
+  public SensorID = nat;
+
+values
+  MAX_SENSORES: nat = 100;
+
+instance variables
+  public sensores: map SensorID to SensorUV := {|->};
+  private alertas: map SensorID to AlertaUV := {|->};
+
+operations
+  public agregarSensor: SensorID * UVIntensity * SensorUV`Ubicacion ==> ()
+  agregarSensor(sensorID, nivel, ubicacion) ==
+  (
+    sensores := sensores ++ {sensorID |-> new SensorUV(nivel, ubicacion)};
+    alertas := alertas ++ {sensorID |-> new AlertaUV()};
+  )
+  pre sensorID not in set dom sensores and card dom sensores < MAX_SENSORES;
+
+  public medirRadiacion: SensorID * UVIntensity ==> ()
+  medirRadiacion(sensorID, radiacion) ==
+  (
+    if sensorID in set dom sensores then
+    (
+      let sensor = sensores(sensorID) in
+      sensor.setNivelRadiacionUV(radiacion);
+      let alerta = alertas(sensorID) in
+      alerta.activarAlerta(radiacion);
+    );
+  )
+  pre sensorID in set dom sensores;
+
+  public obtenerEstadoAlerta: SensorID ==> seq of char
+  obtenerEstadoAlerta(sensorID) ==
+  (
+    return if alertas(sensorID).estadoAlerta() then "true" else "false";
+  );
+
+  public obtenerNivelRiesgo: SensorID ==> AlertaUV`Riesgo
+  obtenerNivelRiesgo(sensorID) ==
+  (
+    return alertas(sensorID).getNivelRiesgo();
+  );
+
+  public obtenerAlerta: SensorID ==> AlertaUV
+  obtenerAlerta(sensorID) ==
+    return alertas(sensorID)
+  pre sensorID in set dom alertas;
+end SistemaMonitoreo
+
+
+---
+
+class Test
+instance variables
+  sistema: SistemaMonitoreo;
+
+operations
+  public run: () ==> seq of char
+  run() ==
+  (
+    return test();
+  );
+
+  public test: () ==> seq of char
+test() ==
+(
+  
+  sistema := new SistemaMonitoreo();
+  
+  sistema.agregarSensor(1, 5.0, "Zona Norte");
+  
+  let sensor: SensorUV = sistema.sensores(1) in
+  (
+    sensor.setUbicacion("Zona Centro");
+    let ubicacion = sensor.getUbicacion() in skip;
+    
+    let nivelRadiacion = sensor.getNivelRadiacionUV() in skip;
+  );
+  
+  sistema.medirRadiacion(1, 3.0); -- Riesgo bajo
+  let estadoBajo = sistema.obtenerEstadoAlerta(1) in skip;
+
+  sistema.medirRadiacion(1, 8.0); -- Riesgo medio
+  let estadoMedio = sistema.obtenerEstadoAlerta(1) in skip;
+
+  sistema.medirRadiacion(1, 12.0); -- Riesgo alto
+  let estadoAlto = sistema.obtenerEstadoAlerta(1) in skip;
+  
+  sistema.medirRadiacion(1, 0.0); -- Sin riesgo
+  let estadoReset = sistema.obtenerEstadoAlerta(1) in skip;
+  
+  let nivelRiesgo = sistema.obtenerNivelRiesgo(1) in skip;
+  let alerta = sistema.obtenerAlerta(1) in skip;
+  
+  return "Prueba del Sistema de Monitoreo UV completada exitosamente.\n";
+);
+
+
+end Test
