@@ -1,0 +1,41 @@
+MODULE main
+VAR
+  location: {Estado_Bajo, Estado_Medio, Estado_Alto}; -- Definimos tres estados de radiación UV
+  nivelUV: 0 .. 100; -- Nivel de radiación UV, por ejemplo, del 0 al 100
+  alertas_activas: boolean; -- Alerta activa para radiación UV
+  nivelRiesgo: {Bajo, Medio, Alto}; -- Riesgo asociado al nivel de radiación
+
+ASSIGN
+  -- Inicialización de las variables
+  init(location) := Estado_Bajo;
+  init(nivelUV) := 0;
+  init(alertas_activas) := FALSE;
+  init(nivelRiesgo) := Bajo;
+
+  -- Transiciones de estados para la radiación UV
+  next(location) := case
+    (location = Estado_Bajo) & (nivelUV >= 7) : Estado_Medio;
+    (location = Estado_Medio) & (nivelUV >= 10) : Estado_Alto;
+    (location = Estado_Alto) & (nivelUV < 10) : Estado_Medio;
+    (location = Estado_Medio) & (nivelUV < 7) : Estado_Bajo;
+    TRUE : location;
+  esac;
+
+  -- Actualización del nivel de UV (incrementa hasta 100, puede ser basado en el tiempo o algún otro parámetro)
+  next(nivelUV) := case
+    (location = Estado_Alto) & (nivelUV < 100) : nivelUV + 1;
+    (location = Estado_Medio) & (nivelUV < 100) : nivelUV + 1;
+    TRUE : nivelUV;
+  esac;
+
+  -- Definición de las alertas activas y el riesgo basado en el nivel de radiación UV
+  next(alertas_activas) := case
+    (nivelUV >= 7) : TRUE; -- Alerta activa cuando la radiación es mayor o igual a 7
+    TRUE : FALSE;
+  esac;
+
+  next(nivelRiesgo) := case
+    (nivelUV >= 10) : Alto;
+    (nivelUV >= 7) & (nivelUV < 10) : Medio;
+    TRUE : Bajo;
+  esac;
