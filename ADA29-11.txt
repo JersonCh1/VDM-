@@ -1,0 +1,66 @@
+#include <algorithm>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+class Ciudad {
+public:
+  int maxDonaciones(int donaciones[], int n_size) {
+    if (n_size == 0)
+      return 0;
+    if (n_size == 1)
+      return donaciones[0];
+
+    // Caso 1: Excluyendo la primera donación
+    int maxSinPrimera = maxDonacionesLineal(donaciones, 1, n_size - 1);
+
+    // Caso 2: Excluyendo la última donación
+    int maxSinUltima = maxDonacionesLineal(donaciones, 0, n_size - 2);
+
+    // Retornar el máximo entre ambos casos
+    return max(maxSinPrimera, maxSinUltima);
+  }
+
+private:
+  int maxDonacionesLineal(int donaciones[], int start, int end) {
+    int incl = 0, excl = 0;
+
+    for (int i = start; i <= end; i++) {
+      int nuevoIncl = excl + donaciones[i];
+      excl = max(excl, incl);
+      incl = nuevoIncl;
+    }
+
+    return max(incl, excl);
+  }
+};
+
+int main() {
+    Ciudad ciudad;
+    // Ejemplo 1: {10, 3, 2, 5, 7, 8}
+    int donaciones1[] = {10, 3, 2, 5, 7, 8};
+    int n_size1 = sizeof(donaciones1) / sizeof(donaciones1[0]);
+    cout << "----------------------------------------" << endl;
+    cout << "| Ejemplo 1: {10, 3, 2, 5, 7, 8}      |" << endl;
+    cout << "| Máxima suma sin tomar consecutivos: " << ciudad.maxDonaciones(donaciones1, n_size1) << " |" << endl;
+    cout << "----------------------------------------" << endl;
+
+    // Ejemplo 2: {11, 15}
+    int donaciones2[] = {11, 15};
+    int n_size2 = sizeof(donaciones2) / sizeof(donaciones2[0]);
+    cout << "---------------------------------" << endl;
+    cout << "| Ejemplo 2: {11, 15}           |" << endl;
+    cout << "| Máxima suma sin tomar consecutivos: " << ciudad.maxDonaciones(donaciones2, n_size2) << " |" << endl;
+    cout << "---------------------------------" << endl;
+
+    // Ejemplo 3: {7, 7, 7, 7, 7, 7, 7}
+    int donaciones3[] = {7, 7, 7, 7, 7, 7, 7};
+    int n_size3 = sizeof(donaciones3) / sizeof(donaciones3[0]);
+    cout << "----------------------------------------" << endl;
+    cout << "| Ejemplo 3: {7, 7, 7, 7, 7, 7, 7}   |" << endl;
+    cout << "| Máxima suma sin tomar consecutivos: " << ciudad.maxDonaciones(donaciones3, n_size3) << " |" << endl;
+    cout << "----------------------------------------" << endl;
+    
+    return 0;
+}
